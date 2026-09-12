@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.test import TestCase
 
 from shop.models import Customer, Product, Purchase
@@ -5,250 +7,193 @@ from shop.models import Customer, Product, Purchase
 
 class ProductTestCase(TestCase):
     def setUp(self):
-        self.book = Product.objects.create(
-            name="book",
-            price=740
-        )
-        self.pencil = Product.objects.create(
-            name="pencil",
-            price=50
-        )
+        self.book = Product.objects.create(name="Книга", price=740)
+        self.pen = Product.objects.create(name="Ручка", price=50)
 
-    def test_product_creation(self):
+    def test_products_are_created(self):
+        """Создаются оба товара."""
         self.assertEqual(Product.objects.count(), 2)
 
-    def test_product_data(self):
-        self.assertEqual(self.book.name, "book")
+    def test_product_names_are_correct(self):
+        """Имена товаров сохраняются как заданы."""
+        self.assertEqual(self.book.name, "Книга")
+        self.assertEqual(self.pen.name, "Ручка")
+
+    def test_product_prices_are_correct(self):
+        """Цены товаров сохраняются как заданы."""
         self.assertEqual(self.book.price, 740)
-        self.assertEqual(self.pencil.name, "pencil")
-        self.assertEqual(self.pencil.price, 50)
+        self.assertEqual(self.pen.price, 50)
 
-    def test_product_types(self):
+    def test_product_str_returns_name(self):
+        """__str__ товара возвращает его имя."""
+        self.assertEqual(str(self.book), "Книга")
+
+    def test_product_name_is_string(self):
+        """Имя товара — строка."""
         self.assertIsInstance(self.book.name, str)
-        self.assertIsInstance(self.book.price, int)
 
-    def test_product_string_representation(self):
-        self.assertEqual(str(self.book), "book")
+    def test_product_price_is_int(self):
+        """Цена товара — целое число."""
+        self.assertIsInstance(self.book.price, int)
 
 
 class CustomerTestCase(TestCase):
     def setUp(self):
         self.customer = Customer.objects.create(
-            name="Ivanov Ivan",
-            address="Svetlaya St."
+            name="Иванов",
+            address="ул. Светлая, 1"
         )
 
-    def test_customer_creation(self):
+    def test_customer_is_created(self):
+        """Покупатель создаётся."""
         self.assertEqual(Customer.objects.count(), 1)
 
-    def test_customer_data(self):
-        self.assertEqual(self.customer.name, "Ivanov Ivan")
-        self.assertEqual(
-            self.customer.address,
-            "Svetlaya St."
-        )
+    def test_customer_name_and_address(self):
+        """Имя и адрес сохраняются."""
+        self.assertEqual(self.customer.name, "Иванов")
+        self.assertEqual(self.customer.address, "ул. Светлая, 1")
 
-    def test_customer_string_representation(self):
-        self.assertEqual(str(self.customer), "Ivanov Ivan")
+    def test_customer_str_returns_name(self):
+        """__str__ покупателя возвращает имя."""
+        self.assertEqual(str(self.customer), "Иванов")
 
-    def test_customer_has_no_purchases(self):
-        self.assertEqual(self.customer.purchases.count(), 0)
-
-    def test_zero_total_spent(self):
+    def test_total_spent_is_zero_without_purchases(self):
+        """Без покупок сумма = 0."""
         self.assertEqual(self.customer.total_spent(), 0)
 
-    def test_zero_discount(self):
+    def test_no_discount_without_purchases(self):
+        """Без покупок скидки нет."""
         self.assertEqual(self.customer.discount_percent(), 0)
-
-    def test_zero_discount_amount(self):
         self.assertEqual(self.customer.discount_amount(), 0)
 
-    def test_zero_total_with_discount(self):
+    def test_total_with_discount_equals_total_without_purchases(self):
+        """Итог без покупок = 0."""
         self.assertEqual(self.customer.total_with_discount(), 0)
+
+    def test_total_spent_sums_purchase_prices(self):
+        """total_spent суммирует стоимость покупок."""
+        p1 = Product.objects.create(name="A", price=1000)
+        p2 = Product.objects.create(name="B", price=2500)
+        Purchase.objects.create(customer=self.customer, product=p1)
+        Purchase.objects.create(customer=self.customer, product=p2)
+        self.assertEqual(self.customer.total_spent(), 3500)
+
+    def test_discount_zero_below_5000(self):
+        """Ниже 5000 — скидка 0%."""
+        p = Product.objects.create(name="A", price=4999)
+        Purchase.objects.create(customer=self.customer, product=p)
+        self.assertEqual(self.customer.discount_percent(), 0)
+
+    def test_discount_three_percent_from_5000(self):
+        """От 5000 — скидка 3%."""
+        p = Product.objects.create(name="A", price=5000)
+        Purchase.objects.create(customer=self.customer, product=p)
+        self.assertEqual(self.customer.discount_percent(), 3)
+
+    def test_discount_five_percent_from_10000(self):
+        """От 10000 — скидка 5%."""
+        p = Product.objects.create(name="A", price=10000)
+        Purchase.objects.create(customer=self.customer, product=p)
+        self.assertEqual(self.customer.discount_percent(), 5)
+
+    def test_discount_ten_percent_from_20000(self):
+        """От 20000 — скидка 10%."""
+        p = Product.objects.create(name="A", price=20000)
+        Purchase.objects.create(customer=self.customer, product=p)
+        self.assertEqual(self.customer.discount_percent(), 10)
+
+    def test_discount_amount_matches_percent(self):
+        """discount_amount = total * percent / 100."""
+        p = Product.objects.create(name="A", price=10000)
+        Purchase.objects.create(customer=self.customer, product=p)
+        self.assertEqual(self.customer.discount_amount(), 500)
+
+    def test_total_with_discount_after_purchase(self):
+        """total_with_discount = total - discount_amount."""
+        p = Product.objects.create(name="A", price=10000)
+        Purchase.objects.create(customer=self.customer, product=p)
+        self.assertEqual(self.customer.total_with_discount(), 9500)
+
+    def test_discount_grows_with_second_purchase(self):
+        """Скидка пересчитывается после второй покупки."""
+        p1 = Product.objects.create(name="A", price=5000)
+        p2 = Product.objects.create(name="B", price=6000)
+        Purchase.objects.create(customer=self.customer, product=p1)
+        self.assertEqual(self.customer.discount_percent(), 3)
+        Purchase.objects.create(customer=self.customer, product=p2)
+        self.assertEqual(self.customer.discount_percent(), 5)
+
+    def test_customer_purchase_count(self):
+        """Количество покупок покупателя."""
+        p = Product.objects.create(name="A", price=100)
+        Purchase.objects.create(customer=self.customer, product=p)
+        Purchase.objects.create(customer=self.customer, product=p)
+        self.assertEqual(self.customer.purchases.count(), 2)
 
 
 class PurchaseTestCase(TestCase):
     def setUp(self):
         self.customer = Customer.objects.create(
-            name="Ivanov Ivan",
-            address="Svetlaya St."
+            name="Петров",
+            address="ул. Лесная, 5"
         )
-
-        self.book = Product.objects.create(
-            name="book",
-            price=740
-        )
-
+        self.product = Product.objects.create(name="Книга", price=740)
         self.purchase = Purchase.objects.create(
             customer=self.customer,
-            product=self.book
+            product=self.product
         )
 
-    def test_purchase_creation(self):
+    def test_purchase_is_created(self):
+        """Покупка создаётся."""
         self.assertEqual(Purchase.objects.count(), 1)
 
     def test_purchase_customer(self):
-        self.assertEqual(
-            self.purchase.customer,
-            self.customer
-        )
+        """Покупка связана с покупателем."""
+        self.assertEqual(self.purchase.customer, self.customer)
+        self.assertEqual(self.purchase.customer.name, "Петров")
 
     def test_purchase_product(self):
-        self.assertEqual(
-            self.purchase.product,
-            self.book
-        )
+        """Покупка связана с товаром."""
+        self.assertEqual(self.purchase.product, self.product)
+        self.assertEqual(self.purchase.product.name, "Книга")
 
-    def test_purchase_date_exists(self):
-        self.assertIsNotNone(self.purchase.date)
+    def test_purchase_date_is_datetime(self):
+        """Дата покупки — datetime."""
+        self.assertIsInstance(self.purchase.date, datetime)
 
-    def test_purchase_string_representation(self):
-        self.assertEqual(
-            str(self.purchase),
-            "Ivanov Ivan: book"
-        )
+    def test_purchase_str_contains_customer_and_product(self):
+        """__str__ покупки содержит имя покупателя и товар."""
+        self.assertEqual(str(self.purchase), "Петров: Книга")
 
-    def test_purchase_is_added_to_customer(self):
-        self.assertEqual(
-            self.customer.purchases.count(),
-            1
-        )
+    def test_purchase_cascade_on_customer_delete(self):
+        """Удаление покупателя удаляет его покупки."""
+        self.customer.delete()
+        self.assertEqual(Purchase.objects.count(), 0)
 
-    def test_total_spent(self):
-        self.assertEqual(
-            self.customer.total_spent(),
-            740
-        )
+    def test_purchase_cascade_on_product_delete(self):
+        """Удаление товара удаляет связанные покупки."""
+        self.product.delete()
+        self.assertEqual(Purchase.objects.count(), 0)
 
+    def test_related_name_purchases(self):
+        """related_name='purchases' работает."""
+        self.assertIn(self.purchase, self.customer.purchases.all())
 
-class DiscountTestCase(TestCase):
-    def setUp(self):
-        self.customer = Customer.objects.create(
-            name="Ivanov Ivan",
-            address="Svetlaya St."
-        )
+    def test_str_methods(self):
+        """__str__ у всех моделей возвращает имена."""
+        p = Product.objects.create(name="X", price=1)
+        c = Customer.objects.create(name="Y", address="Z")
+        pur = Purchase.objects.create(customer=c, product=p)
+        self.assertEqual(str(p), "X")
+        self.assertEqual(str(c), "Y")
+        self.assertEqual(str(pur), "Y: X")
 
-    def add_product(self, name, price):
-        product = Product.objects.create(
-            name=name,
-            price=price
-        )
-
-        Purchase.objects.create(
-            customer=self.customer,
-            product=product
-        )
-
-    def test_discount_below_5000(self):
-        self.add_product("Product", 4999)
-
-        self.assertEqual(
-            self.customer.total_spent(),
-            4999
-        )
-        self.assertEqual(
-            self.customer.discount_percent(),
-            0
-        )
-
-    def test_discount_from_5000(self):
-        self.add_product("Product", 5000)
-
-        self.assertEqual(
-            self.customer.discount_percent(),
-            3
-        )
-
-    def test_discount_from_10000(self):
-        self.add_product("Product", 10000)
-
-        self.assertEqual(
-            self.customer.discount_percent(),
-            5
-        )
-
-    def test_discount_from_20000(self):
-        self.add_product("Product", 20000)
-
-        self.assertEqual(
-            self.customer.discount_percent(),
-            10
-        )
-
-    def test_discount_amount(self):
-        self.add_product("Product", 10000)
-
-        self.assertEqual(
-            self.customer.discount_amount(),
-            500
-        )
-
-    def test_total_with_discount(self):
-        self.add_product("Product", 10000)
-
-        self.assertEqual(
-            self.customer.total_with_discount(),
-            9500
-        )
-
-    def test_six_products(self):
-        prices = [1000, 2000, 1500, 3000, 500, 2000]
-
-        for number, price in enumerate(prices):
-            self.add_product(
-                f"Product {number + 1}",
-                price
-            )
-
-        self.assertEqual(
-            self.customer.purchases.count(),
-            6
-        )
-
-        self.assertEqual(
-            self.customer.total_spent(),
-            10000
-        )
-
-        self.assertEqual(
-            self.customer.discount_percent(),
-            5
-        )
-
-        self.assertEqual(
-            self.customer.discount_amount(),
-            500
-        )
-
-        self.assertEqual(
-            self.customer.total_with_discount(),
-            9500
-        )
-
-    def test_customers_have_independent_discounts(self):
-        second_customer = Customer.objects.create(
-            name="Petrov Petr",
-            address="Lenina St."
-        )
-
-        self.add_product("Product 1", 10000)
-
-        product = Product.objects.create(
-            name="Product 2",
-            price=1000
-        )
-
-        Purchase.objects.create(
-            customer=second_customer,
-            product=product
-        )
-
-        self.assertEqual(
-            self.customer.discount_percent(),
-            5
-        )
-
-        self.assertEqual(
-            second_customer.discount_percent(),
-            0
-        )
+    def test_boundary_discounts(self):
+        """Границы скидок: 4999/5000/9999/10000/19999/20000."""
+        c = Customer.objects.create(name="A", address="B")
+        for price, expected in [(4999, 0), (5000, 3), (9999, 3),
+                                (10000, 5), (19999, 5), (20000, 10)]:
+            Purchase.objects.all().delete()
+            p = Product.objects.create(name=f"p{price}", price=price)
+            Purchase.objects.create(customer=c, product=p)
+            self.assertEqual(c.discount_percent(), expected, f"price={price}")
