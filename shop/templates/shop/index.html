@@ -1,66 +1,155 @@
+
+{% load static %}
 <!DOCTYPE html>
-<html>
-    <head>
-        <meta name="viewport" content="width=device-width" />
-        <title>Магазин</title>
-    </head>
-    <body>
-        <div>
-            <h2>Магазин</h2>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Магазин</title>
+    <link rel="stylesheet" href="{% static 'shop/style.css' %}">
+</head>
+<body>
 
-            <p>
-                <a href="/customer/add/">Добавить покупателя</a>
-            </p>
 
-            <h3>Товары</h3>
+<header class="header">
+    <div class="container header-inner">
+        <a href="/" class="logo">Магазин</a>
 
-            <table border="1">
-                <tr>
-                    <th>Наименование</th>
-                    <th>Цена</th>
-                </tr>
+        <div class="header-actions">
+            <form method="post"
+                  action="{% url 'select_customer' %}"
+                  class="customer-select-form">
+                {% csrf_token %}
 
-                {% for p in products %}
-                    <tr>
-                        <td>{{ p.name }}</td>
-                        <td>{{ p.price }} руб.</td>
-                    </tr>
-                {% endfor %}
-            </table>
-
-            <h3>Покупатели</h3>
-
-            {% if customers %}
-                <table border="1">
-                    <tr>
-                        <th>Имя</th>
-                        <th>Адрес</th>
-                        <th>Покупок</th>
-                        <th>Сумма</th>
-                        <th>Скидка</th>
-                        <th>К оплате</th>
-                    </tr>
+                <select name="customer"
+                        class="customer-select"
+                        onchange="this.form.submit()">
+                    <option value="">
+                        Выберите покупателя
+                    </option>
 
                     {% for customer in customers %}
-                        <tr>
-                            <td>{{ customer.name }}</td>
-                            <td>{{ customer.address }}</td>
-                            <td>{{ customer.purchases.count }}</td>
-                            <td>{{ customer.total_spent }} руб.</td>
-                            <td>{{ customer.discount_percent }}%</td>
-                            <td>{{ customer.total_with_discount }} руб.</td>
-                        </tr>
+                    <option value="{{ customer.id }}"
+                        {% if selected_customer.id == customer.id %}
+                            selected
+                        {% endif %}>
+                        {{ customer.name }}
+                    </option>
                     {% endfor %}
-                </table>
-            {% else %}
-                <p>Покупателей пока нет.</p>
-            {% endif %}
+                </select>
+            </form>
 
-            <h3>Оформить покупку</h3>
-
-            <p>
-                <a href="/buy/">Перейти к оформлению покупки</a>
-            </p>
+            <a href="{% url 'customer_add' %}"
+               class="button button-light">
+                Добавить покупателя
+            </a>
         </div>
-    </body>
+    </div>
+</header>
+
+
+<main class="container">
+
+    <div class="page-heading">
+        <h1>Каталог товаров</h1>
+        <p>Выберите товары и добавьте их в корзину.</p>
+    </div>
+
+    <div class="layout">
+
+        <section class="products-section">
+            <div class="products-grid">
+
+                {% for product in products %}
+                <article class="product-card">
+                    <div class="product-info">
+                        <span class="product-label">Товар</span>
+                        <h3>{{ product.name }}</h3>
+                        <p class="price">
+                            {{ product.price }} ₽
+                        </p>
+                    </div>
+
+                    <form method="post"
+                          action="{% url 'add_to_cart' product.id %}">
+                        {% csrf_token %}
+                        <button class="button button-primary" type="submit">
+                            В корзину
+                        </button>
+                    </form>
+                </article>
+                {% empty %}
+                    <p>Товаров пока нет.</p>
+                {% endfor %}
+
+            </div>
+        </section>
+
+        <aside class="cart">
+            <div class="cart-heading">
+                <h2>Корзина</h2>
+                <span class="cart-count">{{ cart_items|length }}</span>
+            </div>
+
+            {% if cart_items %}
+
+                <div class="cart-items">
+                    {% for item in cart_items %}
+                    <div class="cart-item">
+                        <div>
+                            <strong>{{ item.name }}</strong>
+                            <p>{{ item.price }} ₽</p>
+                        </div>
+
+                        <form method="post"
+                              action="{% url 'remove_from_cart' forloop.counter0 %}">
+                            {% csrf_token %}
+                            <button class="remove-button" type="submit">
+                                Удалить
+                            </button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="cart-summary">
+                    <div class="summary-row">
+                        <span>Сумма</span>
+                        <strong>{{ cart_total }} ₽</strong>
+                    </div>
+
+                    <div class="summary-row">
+                        <span>Скидка</span>
+                        <strong>{{ discount_percent }}%</strong>
+                    </div>
+
+                    <div class="summary-row discount-row">
+                        <span>Экономия</span>
+                        <strong>{{ discount_amount }} ₽</strong>
+                    </div>
+
+                    <div class="summary-total">
+                        <span>К оплате</span>
+                        <strong>{{ final_total }} ₽</strong>
+                    </div>
+                </div>
+
+                <a href="{% url 'buy' %}"
+                   class="button button-primary checkout-button">
+                    Оформить покупку
+                </a>
+
+            {% else %}
+                <div class="empty-cart">
+                    <p>Корзина пока пуста.</p>
+                    <span>Добавьте товары из каталога.</span>
+                </div>
+            {% endif %}
+        </aside>
+
+    </div>
+
+</main>
+
+</body>
 </html>

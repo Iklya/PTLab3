@@ -12,6 +12,16 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+
+    env:
+      SECRET_KEY: django-ci-test-key
+      DEBUG: "False"
+      DB_NAME: django_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: localhost
+      DB_PORT: "5432"
+
     services:
       postgres:
         image: postgres:17
@@ -42,19 +52,10 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run migrations
-        env:
-          DATABASE_PASSWORD: postgres
-        run: |
-          python manage.py migrate
+        run: python manage.py migrate
 
       - name: Run tests
-        env:
-          DATABASE_PASSWORD: postgres
-        run: |
-          python manage.py test
+        run: python manage.py test
 
       - name: Collect static files
-        env:
-          DATABASE_PASSWORD: postgres
-        run: |
-          python manage.py collectstatic --noinput
+        run: python manage.py collectstatic --noinput

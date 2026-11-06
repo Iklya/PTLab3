@@ -1,0 +1,68 @@
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Покупка оформлена</title>
+    <link rel="stylesheet" href="{% static 'shop/style.css' %}">
+</head>
+<body>
+
+<header class="header">
+    <div class="container">
+        <a href="/" class="logo">Магазин</a>
+    </div>
+</header>
+
+<main class="container form-container">
+
+    <div class="form-card">
+        <div class="success-icon">✓</div>
+
+        <h1>Покупка оформлена!</h1>
+        <p class="muted">
+            Покупатель: {{ customer.name }}
+        </p>
+
+        <div class="cart-items">
+            {% for item in cart_items %}
+            <div class="cart-item">
+                <span>{{ item.name }}</span>
+                <strong>{{ item.price }} ₽</strong>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="cart-summary">
+            <div class="summary-row">
+                <span>Сумма товаров</span>
+                <strong>{{ cart_total }} ₽</strong>
+            </div>
+
+            <div class="summary-row">
+                <span>Скидка</span>
+                <strong>{{ discount_percent }}%</strong>
+            </div>
+
+            <div class="summary-row discount-row">
+                <span>Размер скидки</span>
+                <strong>{{ discount_amount }} ₽</strong>
+            </div>
+
+            <div class="summary-total">
+                <span>Итого</span>
+                <strong>{{ final_total }} ₽</strong>
+            </div>
+        </div>
+
+        <a href="/" class="button button-primary full-width">
+            Вернуться в магазин
+        </a>
+    </div>
+
+</main>
+
+</body>
+</html>

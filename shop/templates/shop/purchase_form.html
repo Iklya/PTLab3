@@ -1,24 +1,62 @@
+
+{% load static %}
 <!DOCTYPE html>
-<html>
-    <head>
-        <meta name="viewport" content="width=device-width" />
-        <title>Покупка</title>
-    </head>
-    <body>
-        <div>
-            <h3>Оформление покупки</h3>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Оформление покупки</title>
+    <link rel="stylesheet" href="{% static 'shop/style.css' %}">
+</head>
+<body>
 
-            <form method="post">
-                {% csrf_token %}
+<header class="header">
+    <div class="container">
+        <a href="/" class="logo">Магазин</a>
+    </div>
+</header>
 
-                {{ form.as_p }}
+<main class="container form-container">
 
-                <input type="submit" value="Оформить покупку" />
-            </form>
+    <div class="form-card">
+        <h1>Оформление покупки</h1>
 
-            <p>
-                <a href="/">Вернуться в магазин</a>
-            </p>
+        <p class="muted">
+            Покупатель: <strong>{{ customer.name }}</strong>
+        </p>
+
+        <div class="cart-items">
+            {% for item in cart_items %}
+            <div class="cart-item">
+                <span>{{ item.name }}</span>
+                <strong>{{ item.price }} ₽</strong>
+            </div>
+            {% endfor %}
         </div>
-    </body>
+
+        <div class="checkout-info">
+            <span>Сумма корзины</span>
+            <strong>{{ cart_total }} ₽</strong>
+
+            <span>Скидка</span>
+            <strong>{{ discount_percent }}%</strong>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <button type="submit"
+                    class="button button-primary full-width">
+                Подтвердить покупку
+            </button>
+        </form>
+
+        <a href="/" class="back-link">
+            Вернуться в магазин
+        </a>
+    </div>
+
+</main>
+
+</body>
 </html>

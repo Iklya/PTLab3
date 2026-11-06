@@ -1,3 +1,4 @@
+
 from django.db import models
 
 
@@ -17,33 +18,18 @@ class Customer(models.Model):
         return self.name
 
     def total_spent(self):
-        return sum(purchase.product.price for purchase in self.purchases.select_related('product').all())
-
-    def discount_percent(self):
-        total = self.total_spent()
-
-        if total >= 20000:
-            return 10
-        if total >= 10000:
-            return 5
-        if total >= 5000:
-            return 3
-
-        return 0
-
-    def discount_amount(self):
-        return self.total_spent() * self.discount_percent() / 100
-
-    def total_with_discount(self):
-        return self.total_spent() - self.discount_amount()
+        """Историческая сумма всех покупок покупателя."""
+        return sum(
+            purchase.product.price
+            for purchase in self.purchases.select_related("product").all()
+        )
 
 
 class Purchase(models.Model):
     customer = models.ForeignKey(
         Customer,
         on_delete=models.CASCADE,
-        related_name='purchases',
-        default=1
+        related_name="purchases"
     )
     product = models.ForeignKey(
         Product,
@@ -52,4 +38,4 @@ class Purchase(models.Model):
     date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f'{self.customer.name}: {self.product.name}'
+        return f"{self.customer.name}: {self.product.name}"
